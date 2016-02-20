@@ -10,19 +10,21 @@ import java.util.*;
  */
 public class RentalCars {
     public static void main(String[] args)  throws Exception {
+        // read and parse the json file
         String json = readUrl("http://www.rentalcars.com/js/vehicles.json");
         JsonElement jelement = new JsonParser().parse(json);
         JsonObject jobject = jelement.getAsJsonObject();
         jobject = jobject.getAsJsonObject("Search");
         JsonArray jarray = jobject.getAsJsonArray("VehicleList");
-        System.out.println("A list of all cars in ascending price order");
+        // list vehicles in price order
         listPrice(jarray);
-        System.out.println("\nSIPP specification of all cars");
-        sippSpecification(jarray);
+        // table spec and breakdown tasks
+        specAndBreakdown(jarray);
     }
 
     private static List<VehicleList> getCarList(JsonArray jsonArray)
     {
+        // save a list of all the cars
         Gson gson = new Gson();
         List<VehicleList> cars = new ArrayList<VehicleList>();
         for (int i = 0; i< jsonArray.size(); i++) {
@@ -35,8 +37,9 @@ public class RentalCars {
     }
 
     public static void listPrice(JsonArray carList) {
+        // retrieve all the cars
         List<VehicleList> cars = getCarList(carList);
-
+        // sort the cars price order
         Collections.sort(cars, new Comparator<VehicleList>() {
             @Override
             public int compare(VehicleList v1, VehicleList v2) {
@@ -54,22 +57,27 @@ public class RentalCars {
 
         });
 
+        System.out.println("A list of all cars in ascending price order");
         for (int i = 0; i< cars.size(); i++) {
             System.out.println(i+1 + ". " + cars.get(i).getName() + " - " + cars.get(i).getPrice());
         }
     }
 
-    public static void sippSpecification(JsonArray carList) {
+    public static void specAndBreakdown(JsonArray carList) {
         List<VehicleList> cars = getCarList(carList);
-        Map<String, Double> allCarTypes = new HashMap<String, Double>();
+        Map<String, String> allCarTypes = new HashMap<String, String>();
+        Map<String, String> breakdownRating = new HashMap<String, String>();
+        System.out.println("\nSIPP specification of all cars");
 
         for (int i = 0; i< cars.size(); i++) {
             char firstLetter = cars.get(i).getSipp().charAt(0);
             char secondLetter = cars.get(i).getSipp().charAt(1);
             char thirdLetter = cars.get(i).getSipp().charAt(2);
             char fourthLetter = cars.get(i).getSipp().charAt(3);
+            int score = 0;
             String carType, doorsAndType, transmission, aircon = "";
             String fuel = "Petrol";
+            // working out for first letter
             if (firstLetter == 'M') {
                 carType = "Mini";
             } else if (firstLetter == 'E') {
@@ -92,6 +100,7 @@ public class RentalCars {
                 carType = "undefined car type";
             }
 
+            // working out for second letter
             if (secondLetter == 'B') {
                 doorsAndType = "2 doors";
             } else if (secondLetter == 'C') {
@@ -116,18 +125,23 @@ public class RentalCars {
                 }
             }
 
+            // working out for third letter
             if (thirdLetter == 'M') {
                 transmission = "Manual";
+                score += 1.0;
             } else if (thirdLetter == 'A') {
                 transmission = "Automatic";
+                score += 5.0;
             } else {
                 transmission = "undefined transmission";
             }
 
+            // working out for fourth letter
             if (fourthLetter == 'N') {
                 aircon = "no air conditioning";
             } else if (fourthLetter == 'R') {
                 aircon = "air conditioning";
+                score += 2.0;
             } else {
                 aircon = "aircon not defined";
             }
@@ -136,18 +150,44 @@ public class RentalCars {
                     + " - " + carType + " - " + doorsAndType + " - "
                     + transmission + " - " + fuel + " - " + aircon);
 
-            Double value = allCarTypes.get(carType);
-            Double value2 = allCarTypes.get(doorsAndType);
+            String value = allCarTypes.get(carType);
+            String value2 = allCarTypes.get(doorsAndType);
+            String rating = breakdownRating.get(cars.get(i).getName());
+
             if (value == null) {
-                allCarTypes.put(carType, cars.get(i).getRating());
+                allCarTypes.put(carType, cars.get(i).getName() + " - " + cars.get(i).getSupplier() + " - " + cars.get(i).getRating());
             }
+
             if (value2 == null) {
-                if (doorsAndType != "2 doors" && doorsAndType != "4 doors" && doorsAndType != "5 doors" && doorsAndType != "Passenger Van")
-                allCarTypes.put(doorsAndType, cars.get(i).getRating());
+                if (doorsAndType == "Special")
+                allCarTypes.put(doorsAndType, cars.get(i).getName() + " - " + cars.get(i).getSupplier() + " - " + cars.get(i).getRating());
+            }
+
+            if (rating == null) {
+                Double total = score + cars.get(i).getRating();
+                breakdownRating.put(cars.get(i).getName(), score + " - " + cars.get(i).getRating() + " - " + total);
             }
         }
+
         System.out.println("\nhighest rated supplier per car type, descending order");
-        System.out.println(allCarTypes);
+        Iterator it = allCarTypes.entrySet().iterator();
+        int index = 0;
+
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            index++;
+            System.out.println(index + ". " + pair.getKey() + " - " + pair.getValue());
+        }
+
+        System.out.println("\nlist of vehicles, ordered by the sum of the scores in descending order");
+        Iterator iter = breakdownRating.entrySet().iterator();
+        int ratingIndex = 0;
+
+        while (iter.hasNext()) {
+            Map.Entry pair = (Map.Entry)iter.next();
+            ratingIndex++;
+            System.out.println(ratingIndex + ". " + pair.getKey() + " - " + pair.getValue());
+        }
     }
 
     private static String readUrl(String urlString) throws Exception {
