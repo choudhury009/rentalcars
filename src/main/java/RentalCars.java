@@ -1,23 +1,15 @@
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.*;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import java.util.*;
 
 /**
  * Created by jannatul on 19/02/16.
  */
 public class RentalCars {
     public static void main(String[] args)  throws Exception {
-//        ObjectMapper mapper = new ObjectMapper();
-//        Search obj = mapper.readValue(new URL("http://www.rentalcars.com/js/vehicles.json"), Search.class);
-//        System.out.println(obj);
-
         String json = readUrl("http://www.rentalcars.com/js/vehicles.json");
         JsonElement jelement = new JsonParser().parse(json);
         JsonObject jobject = jelement.getAsJsonObject();
@@ -49,10 +41,12 @@ public class RentalCars {
             @Override
             public int compare(VehicleList v1, VehicleList v2) {
                 if((v1.getPrice() - v2.getPrice()) > 0) {
-                    return -1;
+                    // ascending order
+                    return 1;
                 }
                 else if ((v1.getPrice() - v2.getPrice()) < 0) {
-                    return 1;
+                    // descending order
+                    return -1;
                 } else {
                     return 0;
                 }
@@ -67,6 +61,7 @@ public class RentalCars {
 
     public static void sippSpecification(JsonArray carList) {
         List<VehicleList> cars = getCarList(carList);
+        Map<String, Double> allCarTypes = new HashMap<String, Double>();
 
         for (int i = 0; i< cars.size(); i++) {
             char firstLetter = cars.get(i).getSipp().charAt(0);
@@ -140,7 +135,19 @@ public class RentalCars {
             System.out.println(i + 1 + ". " + cars.get(i).getName() + " - " + cars.get(i).getSipp()
                     + " - " + carType + " - " + doorsAndType + " - "
                     + transmission + " - " + fuel + " - " + aircon);
+
+            Double value = allCarTypes.get(carType);
+            Double value2 = allCarTypes.get(doorsAndType);
+            if (value == null) {
+                allCarTypes.put(carType, cars.get(i).getRating());
+            }
+            if (value2 == null) {
+                if (doorsAndType != "2 doors" && doorsAndType != "4 doors" && doorsAndType != "5 doors" && doorsAndType != "Passenger Van")
+                allCarTypes.put(doorsAndType, cars.get(i).getRating());
+            }
         }
+        System.out.println("\nhighest rated supplier per car type, descending order");
+        System.out.println(allCarTypes);
     }
 
     private static String readUrl(String urlString) throws Exception {
@@ -159,16 +166,5 @@ public class RentalCars {
             if (reader != null)
                 reader.close();
         }
-    }
-
-    public static String parse(String jsonLine) {
-        JsonElement jelement = new JsonParser().parse(jsonLine);
-        JsonObject jobject = jelement.getAsJsonObject();
-        jobject = jobject.getAsJsonObject("Search");
-        JsonArray jarray = jobject.getAsJsonArray("VehicleList");
-        jobject = jarray.get(0).getAsJsonObject();
-        String result = jobject.get("sipp").toString();
-        System.out.println(result);
-        return result;
     }
 }
