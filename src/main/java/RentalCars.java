@@ -20,6 +20,12 @@ public class RentalCars {
         listPrice(jarray);
         // table spec and breakdown tasks
         specAndBreakdown(jarray);
+        // highest rated supplier
+        highestRatedSupplier(jarray);
+
+        getHighestRating(jarray);
+
+        listCarByScore(jarray);
     }
 
     private static List<VehicleList> getCarList(JsonArray jsonArray)
@@ -63,131 +69,71 @@ public class RentalCars {
         }
     }
 
+
     public static void specAndBreakdown(JsonArray carList) {
         List<VehicleList> cars = getCarList(carList);
+
+        System.out.println("\nSIPP specification of all cars");
+        for (int i = 0; i< cars.size(); i++) {
+            String details = getCarDetail(cars.get(i).getSipp());
+            System.out.println(i + 1 + ". " + cars.get(i).getName() + " - " + details);
+        }
+    }
+
+    public static void highestRatedSupplier(JsonArray carList)
+    {
+        List<VehicleList> cars = getCarList(carList);
+        List<String> carType = new ArrayList<String>();
         Map<String, String> allCarTypes = new HashMap<String, String>();
         Map<String, String> breakdownRating = new HashMap<String, String>();
-        System.out.println("\nSIPP specification of all cars");
 
+        System.out.println("\nHighest rated supplier per car type, descending order");
         for (int i = 0; i< cars.size(); i++) {
-            char firstLetter = cars.get(i).getSipp().charAt(0);
-            char secondLetter = cars.get(i).getSipp().charAt(1);
-            char thirdLetter = cars.get(i).getSipp().charAt(2);
-            char fourthLetter = cars.get(i).getSipp().charAt(3);
-            int score = 0;
-            String carType, doorsAndType, transmission, aircon = "";
-            String fuel = "Petrol";
-            // working out for first letter
-            if (firstLetter == 'M') {
-                carType = "Mini";
-            } else if (firstLetter == 'E') {
-                carType = "Economy";
-            } else if (firstLetter == 'C') {
-                carType = "Compact";
-            } else if (firstLetter == 'I') {
-                carType = "Intermediate";
-            } else if (firstLetter == 'S') {
-                carType = "Standard";
-            } else if (firstLetter == 'F') {
-                carType = "Full size";
-            } else if (firstLetter == 'P') {
-                carType = "Premium";
-            } else if (firstLetter == 'L') {
-                carType = "Luxury";
-            } else if (firstLetter == 'X') {
-                carType = "Special";
-            } else {
-                carType = "undefined car type";
-            }
+            char char0 = cars.get(i).getSipp().charAt(0);
+            char char1 = cars.get(i).getSipp().charAt(1);
+            String str = new StringBuilder().append(char0).toString();
+            String defineType = getCarDetail(str);
 
-            // working out for second letter
-            if (secondLetter == 'B') {
-                doorsAndType = "2 doors";
-            } else if (secondLetter == 'C') {
-                doorsAndType = "4 doors";
-            } else if (secondLetter == 'D') {
-                doorsAndType = "5 doors";
-            } else if (secondLetter == 'W') {
-                doorsAndType = "Estate";
-            } else if (secondLetter == 'T') {
-                doorsAndType = "Convertible";
-            } else if (secondLetter == 'F') {
-                doorsAndType = "SUV";
-            } else if (secondLetter == 'P') {
-                doorsAndType = "Pick up";
-            } else if (secondLetter == 'V') {
-                doorsAndType = "Passenger Van";
-            } else {
-                if (secondLetter == 'X') {
-                    doorsAndType = "Special";
-                } else {
-                    doorsAndType  = "undefined doors/car type";
-                }
-            }
-
-            // working out for third letter
-            if (thirdLetter == 'M') {
-                transmission = "Manual";
-                score += 1.0;
-            } else if (thirdLetter == 'A') {
-                transmission = "Automatic";
-                score += 5.0;
-            } else {
-                transmission = "undefined transmission";
-            }
-
-            // working out for fourth letter
-            if (fourthLetter == 'N') {
-                aircon = "no air conditioning";
-            } else if (fourthLetter == 'R') {
-                aircon = "air conditioning";
-                score += 2.0;
-            } else {
-                aircon = "aircon not defined";
-            }
-
-            System.out.println(i + 1 + ". " + cars.get(i).getName() + " - " + cars.get(i).getSipp()
-                    + " - " + carType + " - " + doorsAndType + " - "
-                    + transmission + " - " + fuel + " - " + aircon);
-
-            String value = allCarTypes.get(carType);
-            String value2 = allCarTypes.get(doorsAndType);
-            String rating = breakdownRating.get(cars.get(i).getName());
+            String value = allCarTypes.get(defineType);
+            String value2 = allCarTypes.get("Special");
 
             if (value == null) {
-                allCarTypes.put(carType, cars.get(i).getName() + " - " + cars.get(i).getSupplier() + " - " + cars.get(i).getRating());
+                allCarTypes.put(defineType, cars.get(i).getName() + " - " + cars.get(i).getSupplier() + " - " + cars.get(i).getRating());
             }
-
+//
             if (value2 == null) {
-                if (doorsAndType == "Special")
-                allCarTypes.put(doorsAndType, cars.get(i).getName() + " - " + cars.get(i).getSupplier() + " - " + cars.get(i).getRating());
+                if (char1 == 'X')
+                    allCarTypes.put("Special", cars.get(i).getName() + " - " + cars.get(i).getSupplier() + " - " + cars.get(i).getRating());
             }
-
-            if (rating == null) {
-                Double total = score + cars.get(i).getRating();
-                breakdownRating.put(cars.get(i).getName(), score + " - " + cars.get(i).getRating() + " - " + total);
-            }
+//
+//            String rating = breakdownRating.get(cars.get(i).getName());
+//            if (rating == null) {
+//                Double total = score + cars.get(i).getRating();
+//                breakdownRating.put(cars.get(i).getName(), score + " - " + cars.get(i).getRating() + " - " + total);
+//            }
         }
 
-        System.out.println("\nhighest rated supplier per car type, descending order");
         Iterator it = allCarTypes.entrySet().iterator();
         int index = 0;
-
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
             index++;
             System.out.println(index + ". " + pair.getKey() + " - " + pair.getValue());
         }
+//
+//        System.out.println("\nlist of vehicles, ordered by the sum of the scores in descending order");
+//        Iterator iter = breakdownRating.entrySet().iterator();
+//        int ratingIndex = 0;
+//
+//        while (iter.hasNext()) {
+//            Map.Entry pair = (Map.Entry)iter.next();
+//            ratingIndex++;
+//            System.out.println(ratingIndex + ". " + pair.getKey() + " - " + pair.getValue());
+//        }
+    }
 
-        System.out.println("\nlist of vehicles, ordered by the sum of the scores in descending order");
-        Iterator iter = breakdownRating.entrySet().iterator();
-        int ratingIndex = 0;
+    public static void supplierRating(JsonArray carList) {
 
-        while (iter.hasNext()) {
-            Map.Entry pair = (Map.Entry)iter.next();
-            ratingIndex++;
-            System.out.println(ratingIndex + ". " + pair.getKey() + " - " + pair.getValue());
-        }
     }
 
     private static String readUrl(String urlString) throws Exception {
@@ -206,5 +152,191 @@ public class RentalCars {
             if (reader != null)
                 reader.close();
         }
+    }
+
+    public static String getCarDetail(String sipp)
+    {
+        char[] charArray = sipp.toCharArray();
+        String carDetail = "";
+        switch (charArray[0])
+        {
+            case 'M':
+                carDetail = "Mini";
+                break;
+            case 'E':
+                carDetail = "Economy";
+                break;
+            case 'C':
+                carDetail = "Compact";
+                break;
+            case 'I':
+                carDetail = "Intermediate";
+                break;
+            case 'S':
+                carDetail = "Standard";
+                break;
+            case 'F':
+                carDetail = "Full size";
+                break;
+            case 'P':
+                carDetail = "Premium";
+                break;
+            case 'L':
+                carDetail = "Luxury";
+                break;
+            case 'X':
+                carDetail = "Special";
+                break;
+            default:
+                break;
+        }
+
+        if (charArray.length > 1) {
+            switch (charArray[1])
+            {
+                case 'B':
+                    carDetail += " - 2 doors";
+                    break;
+                case 'C':
+                    carDetail += " - 4 doors";
+                    break;
+                case 'D':
+                    carDetail += " - 5 doors";
+                    break;
+                case 'W':
+                    carDetail += " - Estate";
+                    break;
+                case 'T':
+                    carDetail += " - Convertible";
+                    break;
+                case 'F':
+                    carDetail += " - SUV";
+                    break;
+                case 'P':
+                    carDetail += " - Pick up";
+                    break;
+                case 'V':
+                    carDetail += " - passenger van";
+                    break;
+                case 'X':
+                    carDetail += " - Special";
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if (charArray.length > 2) {
+            switch (charArray[2]) {
+                case 'M':
+                    carDetail += " - Manual";
+                    break;
+                case 'A':
+                    carDetail += " - Automatic";
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        if (charArray.length > 3) {
+            switch (charArray[3]) {
+                case 'N':
+                    carDetail += " - petrol - no air conditioning";
+                    break;
+                case 'R':
+                    carDetail += " - petrol - air conditioning";
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return carDetail;
+    }
+
+    public static void getHighestRating(JsonArray carList) {
+        List<VehicleList> cars = getCarList(carList);
+        // sort the cars price order
+        Collections.sort(cars, new Comparator<VehicleList>() {
+            @Override
+            public int compare(VehicleList v1, VehicleList v2) {
+                if((v1.getRating() - v2.getRating()) > 0) {
+                    // ascending order
+                    return -1;
+                }
+                else if ((v1.getRating() - v2.getRating()) < 0) {
+                    // descending order
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+
+        });
+
+        List<String> existedType = new ArrayList<String>();
+        int index = 0;
+        for (VehicleList car: cars) {
+            String carType = getCarDetail(car.getSipp()).split(" - ")[0];
+            if (!existedType.contains(carType)) {
+                existedType.add(carType);
+                index++;
+                System.out.println(index + ". " + car.getName() + " - " + carType + " - " + car.getSupplier() + " - " + car.getRating());
+            }
+        }
+    }
+
+    public static void listCarByScore(JsonArray carList) {
+        List<VehicleList> cars = getCarList(carList);
+        Map<String, Double> allCarTypes = new HashMap<String, Double>();
+        int index = 0;
+        System.out.println("\nlist of vehicles with sum of scores");
+        for (VehicleList car: cars) {
+            String transmission = getCarDetail(car.getSipp()).split(" - ")[2];
+            String aircon = getCarDetail(car.getSipp()).split(" - ")[4];
+            int transScore = getPoint(transmission);
+            int airconScore = getPoint(aircon);
+            int totalBreakdownScore = airconScore + transScore;
+            index++;
+            Double totalScore = getTotalScore(car.getRating(), totalBreakdownScore);
+            allCarTypes.put(car.getName() + " - " + totalBreakdownScore + " - " + car.getRating() + " - ", totalScore);
+        }
+
+        Map sortedMap = SortByValue(allCarTypes);
+        Iterator iter = sortedMap.entrySet().iterator();
+        int ratingIndex = 0;
+
+        while (iter.hasNext()) {
+            Map.Entry pair = (Map.Entry)iter.next();
+            ratingIndex++;
+            System.out.println(ratingIndex + ". " + pair.getKey() + " - " + pair.getValue());
+        }
+
+    }
+
+    public static Map SortByValue(Map unsortedMap) {
+        Map sortedMap = new TreeMap(new ValueComparator(unsortedMap));
+        sortedMap.putAll(unsortedMap);
+        return sortedMap;
+    }
+
+    public static Double getTotalScore(Double rating, int score) {
+        return rating + score;
+    }
+
+    public static int getPoint(String breakdown)
+    {
+        int score = 0;
+        if (breakdown.equals("Manual")) {
+            score += 1;
+        } else if (breakdown.equals("Automatic")) {
+            score += 5;
+        } else if (breakdown.equals("air conditioning")) {
+            score += 2;
+        }
+
+        return score;
+
     }
 }
