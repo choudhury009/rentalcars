@@ -16,15 +16,13 @@ public class RentalCars {
         JsonObject jobject = jelement.getAsJsonObject();
         jobject = jobject.getAsJsonObject("Search");
         JsonArray jarray = jobject.getAsJsonArray("VehicleList");
-        // list vehicles in price order
+//        previous code for highest rated supplier
+//        highestRatedSupplier(jarray);
+
+//        list vehicles in price order
         listPrice(jarray);
-        // table spec and breakdown tasks
-        specAndBreakdown(jarray);
-        // highest rated supplier
-        highestRatedSupplier(jarray);
-
+        vehicleSpecification(jarray);
         getHighestRating(jarray);
-
         listCarByScore(jarray);
     }
 
@@ -70,7 +68,7 @@ public class RentalCars {
     }
 
 
-    public static void specAndBreakdown(JsonArray carList) {
+    public static void vehicleSpecification(JsonArray carList) {
         List<VehicleList> cars = getCarList(carList);
 
         System.out.println("\nSIPP specification of all cars");
@@ -82,10 +80,9 @@ public class RentalCars {
 
     public static void highestRatedSupplier(JsonArray carList)
     {
+        // this code is unused and replaced by getHighestRating()
         List<VehicleList> cars = getCarList(carList);
-        List<String> carType = new ArrayList<String>();
         Map<String, String> allCarTypes = new HashMap<String, String>();
-        Map<String, String> breakdownRating = new HashMap<String, String>();
 
         System.out.println("\nHighest rated supplier per car type, descending order");
         for (int i = 0; i< cars.size(); i++) {
@@ -100,17 +97,10 @@ public class RentalCars {
             if (value == null) {
                 allCarTypes.put(defineType, cars.get(i).getName() + " - " + cars.get(i).getSupplier() + " - " + cars.get(i).getRating());
             }
-//
             if (value2 == null) {
                 if (char1 == 'X')
                     allCarTypes.put("Special", cars.get(i).getName() + " - " + cars.get(i).getSupplier() + " - " + cars.get(i).getRating());
             }
-//
-//            String rating = breakdownRating.get(cars.get(i).getName());
-//            if (rating == null) {
-//                Double total = score + cars.get(i).getRating();
-//                breakdownRating.put(cars.get(i).getName(), score + " - " + cars.get(i).getRating() + " - " + total);
-//            }
         }
 
         Iterator it = allCarTypes.entrySet().iterator();
@@ -120,38 +110,93 @@ public class RentalCars {
             index++;
             System.out.println(index + ". " + pair.getKey() + " - " + pair.getValue());
         }
-//
-//        System.out.println("\nlist of vehicles, ordered by the sum of the scores in descending order");
-//        Iterator iter = breakdownRating.entrySet().iterator();
-//        int ratingIndex = 0;
-//
-//        while (iter.hasNext()) {
-//            Map.Entry pair = (Map.Entry)iter.next();
-//            ratingIndex++;
-//            System.out.println(ratingIndex + ". " + pair.getKey() + " - " + pair.getValue());
-//        }
     }
 
-    public static void supplierRating(JsonArray carList) {
+    public static void getHighestRating(JsonArray carList) {
+        List<VehicleList> cars = getCarList(carList);
+        // sort the cars price order
+        Collections.sort(cars, new Comparator<VehicleList>() {
+            @Override
+            public int compare(VehicleList v1, VehicleList v2) {
+                if((v1.getRating() - v2.getRating()) > 0) {
+                    // ascending order
+                    return -1;
+                }
+                else if ((v1.getRating() - v2.getRating()) < 0) {
+                    // descending order
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
 
-    }
+        });
 
-    private static String readUrl(String urlString) throws Exception {
-        BufferedReader reader = null;
-        try {
-            URL url = new URL(urlString);
-            reader = new BufferedReader(new InputStreamReader(url.openStream()));
-            StringBuffer buffer = new StringBuffer();
-            int read;
-            char[] chars = new char[1024];
-            while ((read = reader.read(chars)) != -1)
-                buffer.append(chars, 0, read);
-
-            return buffer.toString();
-        } finally {
-            if (reader != null)
-                reader.close();
+        List<String> existedType = new ArrayList<String>();
+        int index = 0;
+        System.out.println("\nHighest rated supplier per car type, descending order");
+        for (VehicleList car: cars) {
+            String carType = getCarDetail(car.getSipp()).split(" - ")[0];
+            if (!existedType.contains(carType)) {
+                existedType.add(carType);
+                index++;
+                System.out.println(index + ". " + car.getName() + " - " + carType + " - " + car.getSupplier() + " - " + car.getRating());
+            }
         }
+    }
+
+    public static void listCarByScore(JsonArray carList) {
+        List<VehicleList> cars = getCarList(carList);
+        Map<String, Double> allCarTypes = new HashMap<String, Double>();
+        int index = 0;
+        System.out.println("\nlist of vehicles with sum of scores");
+        for (VehicleList car: cars) {
+            String transmission = getCarDetail(car.getSipp()).split(" - ")[2];
+            String aircon = getCarDetail(car.getSipp()).split(" - ")[4];
+            int transScore = getPoint(transmission);
+            int airconScore = getPoint(aircon);
+            int totalBreakdownScore = airconScore + transScore;
+            index++;
+            Double totalScore = getTotalScore(car.getRating(), totalBreakdownScore);
+            // save car details before sorting the total score
+            allCarTypes.put(car.getName() + " - " + totalBreakdownScore + " - " + car.getRating() + " - ", totalScore);
+        }
+
+        Map sortedMap = SortByValue(allCarTypes);
+        Iterator iter = sortedMap.entrySet().iterator();
+        int ratingIndex = 0;
+
+        while (iter.hasNext()) {
+            Map.Entry pair = (Map.Entry)iter.next();
+            ratingIndex++;
+            System.out.println(ratingIndex + ". " + pair.getKey() + " - " + pair.getValue());
+        }
+
+    }
+
+    public static Map SortByValue(Map unsortedMap) {
+        Map sortedMap = new TreeMap(new ValueComparator(unsortedMap));
+        sortedMap.putAll(unsortedMap);
+        return sortedMap;
+    }
+
+    public static Double getTotalScore(Double rating, int score) {
+        return rating + score;
+    }
+
+    public static int getPoint(String breakdown)
+    {
+        int score = 0;
+        if (breakdown.equals("Manual")) {
+            score += 1;
+        } else if (breakdown.equals("Automatic")) {
+            score += 5;
+        } else if (breakdown.equals("air conditioning")) {
+            score += 2;
+        }
+
+        return score;
+
     }
 
     public static String getCarDetail(String sipp)
@@ -255,88 +300,21 @@ public class RentalCars {
         return carDetail;
     }
 
-    public static void getHighestRating(JsonArray carList) {
-        List<VehicleList> cars = getCarList(carList);
-        // sort the cars price order
-        Collections.sort(cars, new Comparator<VehicleList>() {
-            @Override
-            public int compare(VehicleList v1, VehicleList v2) {
-                if((v1.getRating() - v2.getRating()) > 0) {
-                    // ascending order
-                    return -1;
-                }
-                else if ((v1.getRating() - v2.getRating()) < 0) {
-                    // descending order
-                    return 1;
-                } else {
-                    return 0;
-                }
-            }
+    private static String readUrl(String urlString) throws Exception {
+        BufferedReader reader = null;
+        try {
+            URL url = new URL(urlString);
+            reader = new BufferedReader(new InputStreamReader(url.openStream()));
+            StringBuffer buffer = new StringBuffer();
+            int read;
+            char[] chars = new char[1024];
+            while ((read = reader.read(chars)) != -1)
+                buffer.append(chars, 0, read);
 
-        });
-
-        List<String> existedType = new ArrayList<String>();
-        int index = 0;
-        for (VehicleList car: cars) {
-            String carType = getCarDetail(car.getSipp()).split(" - ")[0];
-            if (!existedType.contains(carType)) {
-                existedType.add(carType);
-                index++;
-                System.out.println(index + ". " + car.getName() + " - " + carType + " - " + car.getSupplier() + " - " + car.getRating());
-            }
+            return buffer.toString();
+        } finally {
+            if (reader != null)
+                reader.close();
         }
-    }
-
-    public static void listCarByScore(JsonArray carList) {
-        List<VehicleList> cars = getCarList(carList);
-        Map<String, Double> allCarTypes = new HashMap<String, Double>();
-        int index = 0;
-        System.out.println("\nlist of vehicles with sum of scores");
-        for (VehicleList car: cars) {
-            String transmission = getCarDetail(car.getSipp()).split(" - ")[2];
-            String aircon = getCarDetail(car.getSipp()).split(" - ")[4];
-            int transScore = getPoint(transmission);
-            int airconScore = getPoint(aircon);
-            int totalBreakdownScore = airconScore + transScore;
-            index++;
-            Double totalScore = getTotalScore(car.getRating(), totalBreakdownScore);
-            allCarTypes.put(car.getName() + " - " + totalBreakdownScore + " - " + car.getRating() + " - ", totalScore);
-        }
-
-        Map sortedMap = SortByValue(allCarTypes);
-        Iterator iter = sortedMap.entrySet().iterator();
-        int ratingIndex = 0;
-
-        while (iter.hasNext()) {
-            Map.Entry pair = (Map.Entry)iter.next();
-            ratingIndex++;
-            System.out.println(ratingIndex + ". " + pair.getKey() + " - " + pair.getValue());
-        }
-
-    }
-
-    public static Map SortByValue(Map unsortedMap) {
-        Map sortedMap = new TreeMap(new ValueComparator(unsortedMap));
-        sortedMap.putAll(unsortedMap);
-        return sortedMap;
-    }
-
-    public static Double getTotalScore(Double rating, int score) {
-        return rating + score;
-    }
-
-    public static int getPoint(String breakdown)
-    {
-        int score = 0;
-        if (breakdown.equals("Manual")) {
-            score += 1;
-        } else if (breakdown.equals("Automatic")) {
-            score += 5;
-        } else if (breakdown.equals("air conditioning")) {
-            score += 2;
-        }
-
-        return score;
-
     }
 }
